@@ -17,6 +17,10 @@ int priority(char op)
     case '*':
     case '/':
         return 20;
+    case '<':
+    case '>':
+    case '=':
+        return 5;
     default:
         assert(false);
     }
@@ -35,7 +39,12 @@ int applyOperator(char op, int left, int right)
         return left * right;
     case '/':
         return left / right;
-
+    case '>':
+        return left > right;
+    case '<':
+        return left < right;
+    case '=':
+        return left == right;
     default:
         assert(false);
     }
@@ -59,7 +68,15 @@ std::function<int(int, int)> fn(char c)
     case '/':
         return [](int x, int y) -> int
         { return x / y; };
-
+    case '>':
+        return [](int x, int y) -> int
+        { return x > y; };
+    case '<':
+        return [](int x, int y) -> int
+        { return x < y; };
+    case '=':
+        return [](int x, int y) -> int
+        { return x == y; };
     default:
         assert(false);
     }
@@ -68,7 +85,7 @@ std::function<int(int, int)> fn(char c)
     {assert(false);return -1; };
 }
 
-bool Base::node::operator==(const node& other)
+bool Base::node::operator==(const node &other)
 {
     return this->key == other.key;
 }
@@ -83,36 +100,40 @@ int Base::RPNeval(std::istream &in)
     while (t.type != Tokenizer::STOP_SYMBOL)
     {
         assert(t.type == Tokenizer::NUMBER || t.type == Tokenizer::OPERATOR || t.type == Tokenizer::CHAR);
-        if(t.type == Tokenizer::NUMBER)
+        if (t.type == Tokenizer::NUMBER)
         {
             s.push(t.value);
-        } else if(t.type == Tokenizer::CHAR)   //!
-        {                      
+        }
+        else if (t.type == Tokenizer::CHAR) //!
+        {
             bool found = 0;
-                for (std::size_t i = 0; i < this->arr.size(); i++)
+            for (std::size_t i = 0; i < this->arr.size(); i++)
+            {
+                if (t.symbol == this->arr[i]->key)
                 {
-                    if (t.symbol == this->arr[i]->key)
-                    {
-                        t.value = this->arr[i]->value;
-                        found = 1;
-                    }
+                    t.value = this->arr[i]->value;
+                    found = 1;
                 }
-                if (found == 0)
-                {
-                    throw "undefined symbol";
-                }
-                else
-                {
-                    s.push(t.value);
-                }                
-            // s.push(t.value);                   
-        }                                      
-        else 
-        { //t.type == Tokenizer::OPERATOR
+            }
+            if (found == 0)
+            {
+                // std::cout << "here";
+                throw "undefined symbol";
+            }
+            else
+            {
+                s.push(t.value);
+            }
+            // s.push(t.value);
+        }
+        else
+        { // t.type == Tokenizer::OPERATOR
             assert(s.size() > 1);
-            int right = s.top(); s.pop();
-            int left = s.top(); s.pop();
-            s.push(fn(t.symbol)(left,right));
+            int right = s.top();
+            s.pop();
+            int left = s.top();
+            s.pop();
+            s.push(fn(t.symbol)(left, right));
         }
         in >> t;
     }
@@ -130,58 +151,59 @@ std::string infixToRPN(std::istream &in)
 
     while (t.type != Tokenizer::STOP_SYMBOL)
     {
-        if(t.type == Tokenizer::NUMBER)
+        if (t.type == Tokenizer::NUMBER)
         {
             output.push_back(t);
-        } else if(t.type == Tokenizer::CHAR)
+        }
+        else if (t.type == Tokenizer::CHAR)
         {
             output.push_back(t);
         }
         else if (t.type == Tokenizer::OPEN_BRACK)
         {
             shuntingYard.push(t);
-        } else if (t.type == Tokenizer::CLOSE_BRACK)
+        }
+        else if (t.type == Tokenizer::CLOSE_BRACK)
         {
             assert(shuntingYard.size() > 0);
-            while(shuntingYard.top().type != Tokenizer::OPEN_BRACK)
+            while (shuntingYard.top().type != Tokenizer::OPEN_BRACK)
             {
                 assert(shuntingYard.size() > 0);
-                output.push_back(shuntingYard.top()); 
+                output.push_back(shuntingYard.top());
                 shuntingYard.pop();
             }
             shuntingYard.pop();
-
-        } else if (t.type == Tokenizer::OPERATOR)
+        }
+        else if (t.type == Tokenizer::OPERATOR)
         {
-                while(shuntingYard.size() > 0 &&
-                        shuntingYard.top().type != Tokenizer::OPEN_BRACK &&
-                        priority(shuntingYard.top().symbol) >= priority(t.symbol))
-                {
-                    Tokenizer::Token waiting;
-                    output.push_back(shuntingYard.top());
-                    shuntingYard.pop();
-                }
-                shuntingYard.push(t);
+            while (shuntingYard.size() > 0 &&
+                   shuntingYard.top().type != Tokenizer::OPEN_BRACK &&
+                   priority(shuntingYard.top().symbol) >= priority(t.symbol))
+            {
+                Tokenizer::Token waiting;
+                output.push_back(shuntingYard.top());
+                shuntingYard.pop();
+            }
+            shuntingYard.push(t);
         }
 
         in >> t;
     }
 
-    while(shuntingYard.size() > 0)
+    while (shuntingYard.size() > 0)
     {
         output.push_back(shuntingYard.top());
-        shuntingYard.pop();        
+        shuntingYard.pop();
     }
 
     std::stringstream rpn;
 
-    for(Tokenizer::Token t : output)
+    for (Tokenizer::Token t : output)
     {
         rpn << t << " ";
     }
 
     return rpn.str() + ";";
-    
 }
 
 void SpaceRemover(std::istream &is, char &next)
@@ -212,8 +234,8 @@ void Base::setCommandInterp(std::istream &is, char &next)
 
     std::stringstream expression(exp);
     // std::string res = infixToRPN(expression); //!
-    std::stringstream RPexpression(infixToRPN(expression));  //!
-    n->value = RPNeval(RPexpression);       //!
+    std::stringstream RPexpression(infixToRPN(expression)); //!
+    n->value = RPNeval(RPexpression);                       //!
     // n->value = recEval(expression);
     this->arr.push_back(n);
 }
@@ -221,13 +243,34 @@ void Base::setCommandInterp(std::istream &is, char &next)
 void Base::printCommandInterp(std::istream &is, char &next)
 {
     SpaceRemover(is, next);
-
-    std::string exp;
-    getline(is, exp);
-    std::stringstream expression(exp);
-    std::stringstream RPexpression(infixToRPN(expression));
-    // std::stringstream expression(exp);
-    std::cout << RPNeval(RPexpression) << '\n';
+    //! std::cout << next;
+    if (next == ':')
+    {
+        is.get();
+        std::string exp;
+        getline(is, exp);
+        std::stringstream expression(exp);
+        std::stringstream RPexpression(infixToRPN(expression));
+        // std::stringstream expression(exp);
+        // std::cout << RPNeval(RPexpression) << '\n';
+        if(RPNeval(RPexpression) != 0)
+        {
+            std::cout << "true" << '\n';
+        }
+        else 
+        {
+            std::cout << "false" << '\n';
+        }
+    }
+    else
+    {
+        std::string exp;
+        getline(is, exp);
+        std::stringstream expression(exp);
+        std::stringstream RPexpression(infixToRPN(expression));
+        // std::stringstream expression(exp);
+        std::cout << RPNeval(RPexpression) << '\n';
+    }
 }
 
 void Base::readFromFile(std::istream &is)
@@ -236,7 +279,7 @@ void Base::readFromFile(std::istream &is)
     {
         char next = is.peek();
         SpaceRemover(is, next);
-        
+
         std::string command;
         is >> command;
         next = is.peek();
@@ -247,7 +290,7 @@ void Base::readFromFile(std::istream &is)
         }
         else if (command == "print")
         {
-            this->printCommandInterp(is,next);   //! popravi printa da raboti s RPN 
+            this->printCommandInterp(is, next); //! popravi printa da raboti s RPN
         }
     }
 }
@@ -270,7 +313,7 @@ std::ifstream &operator>>(std::ifstream &is, Tokenizer::Token &t)
         t.symbol = next;
         is.get();
     }
-    else if (next == '+' || next == '-' || next == '/' || next == '*')
+    else if (next == '+' || next == '-' || next == '/' || next == '*' || next == '=' || next == '>' || next == '<')
     {
         t.type = Tokenizer::OPERATOR;
         t.symbol = next;
@@ -293,6 +336,7 @@ std::ifstream &operator>>(std::ifstream &is, Tokenizer::Token &t)
     {
         if (!std::isdigit(next))
         {
+            //TODO: std::cout << "here";
             throw "Unexpected character type!";
         }
         t.type = Tokenizer::NUMBER;
@@ -320,7 +364,7 @@ std::istream &operator>>(std::istream &is, Tokenizer::Token &t)
         t.symbol = next;
         is.get();
     }
-    else if (next == '+' || next == '-' || next == '/' || next == '*')
+    else if (next == '+' || next == '-' || next == '/' || next == '*' || next == '>' || next == '<' || next == '=')
     {
         t.type = Tokenizer::OPERATOR;
         t.symbol = next;
@@ -342,9 +386,7 @@ std::istream &operator>>(std::istream &is, Tokenizer::Token &t)
     {
         if (!std::isdigit(next))
         {
-            //! std::cout << next;
             throw "Unexpected character type!";
-
         }
         t.type = Tokenizer::NUMBER;
         is >> t.value;
@@ -353,22 +395,22 @@ std::istream &operator>>(std::istream &is, Tokenizer::Token &t)
     return is;
 }
 
-std::ostream& operator<<(std::ostream &out, const Tokenizer::Token &t)
+std::ostream &operator<<(std::ostream &out, const Tokenizer::Token &t)
 {
-    switch(t.type)
+    switch (t.type)
     {
-        case Tokenizer::NUMBER:
-            out << t.value;
-            break;
-        case Tokenizer::OPERATOR:
-        case Tokenizer::OPEN_BRACK:
-        case Tokenizer::CLOSE_BRACK:
-        case Tokenizer::STOP_SYMBOL:
-        case Tokenizer::CHAR:
-            out << t.symbol;
-            break;
-        default:
-            out << t.keyword;
+    case Tokenizer::NUMBER:
+        out << t.value;
+        break;
+    case Tokenizer::OPERATOR:
+    case Tokenizer::OPEN_BRACK:
+    case Tokenizer::CLOSE_BRACK:
+    case Tokenizer::STOP_SYMBOL:
+    case Tokenizer::CHAR:
+        out << t.symbol;
+        break;
+    default:
+        out << t.keyword;
     }
 
     return out;
@@ -421,17 +463,13 @@ int Base::recEval(std::istream &in)
     return fn(op)(left, right);
 }
 
-
-
 Base::~Base()
 {
-    for(std::size_t i = 0; i < this->arr.size(); i++)
+    for (std::size_t i = 0; i < this->arr.size(); i++)
     {
         delete arr[i];
     }
 }
-
-
 
 // int main()
 // {
@@ -446,9 +484,5 @@ Base::~Base()
 //     // std::stringstream so(res);
 
 //     // std::cout << a.RPNeval(so);
-
-
-    
-
 
 // }

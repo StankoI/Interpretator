@@ -47,8 +47,6 @@ TEST_CASE("Linking key with value")
     char n = is.peek();
 
     base.setCommandInterp(is,n);
-    
-
 }
 
 TEST_CASE("hello world")
@@ -61,17 +59,17 @@ TEST_CASE("hello world")
 
 int main()
 {
-    // std::ifstream is("test.stuck");
-    // if (!is.is_open())
-    // {
-    //     return 1;
-    // }
+    std::ifstream is("test.stuck");
+    if (!is.is_open())
+    {
+        return 1;
+    }
 
-    // Base a;
+    Base a;
 
-    // a.readFromFile(is);
+    a.readFromFile(is);
 
-    doctest::Context().run();
+    // doctest::Context().run();
 
 
     return 0;

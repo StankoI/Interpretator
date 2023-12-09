@@ -1,4 +1,4 @@
 set a = 4;
 set b = 6 + a;
-set c = 7 + b;
-set d = 8 + a;
+print b;
+print b >a; 

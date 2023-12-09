@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <string>
 #include <vector>
 #include <unordered_set>
 
@@ -26,10 +27,14 @@ class Base
 {
     public:
 
+    enum Base_type{NUMBER, STRING};
+
     struct node
     {
         char key;
         double value;
+        std::string strValue;
+        Base_type type;
 
         bool operator==(const node& other);
 
